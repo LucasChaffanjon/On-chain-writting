@@ -1,0 +1,31 @@
+smart contract :
+0xcaa3ae853bd88f0075dAA95aF30c12D4f962CDfe
+base
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract EncryptedMessageStore {
+    string[] private messages;
+
+    event MessageStored(uint256 indexed id, string encryptedMessage, uint256 timestamp);
+
+    function storeMessage(string calldata encrypted) external {
+        messages.push(encrypted);
+        emit MessageStored(messages.length - 1, encrypted, block.timestamp);
+    }
+
+    function getMessage(uint256 id) external view returns (string memory) {
+        require(id < messages.length, "Message inexistant");
+        return messages[id];
+    }
+
+    function getMessageCount() external view returns (uint256) {
+        return messages.length;
+    }
+
+    function getLatestMessage() external view returns (string memory) {
+        require(messages.length > 0, "Aucun message");
+        return messages[messages.length - 1];
+    }
+}
