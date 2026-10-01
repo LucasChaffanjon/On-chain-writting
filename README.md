@@ -1,70 +1,78 @@
-# Getting Started with Create React App
+# On-chain Vault
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+On-chain Vault est un coffre-fort local chiffré qui permet de stocker des données chiffrées sur Base.
 
-## Available Scripts
+L'application est pensée pour conserver des informations sensibles comme :
 
-In the project directory, you can run:
+- mots de passe
+- seed phrases
+- notes privées
+- identifiants
+- informations de récupération
 
-### `npm start`
+Les données sont chiffrées localement avant d'être écrites sur la blockchain.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Seuls des payloads chiffrés sont stockés sur Base.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+L'application fonctionne entièrement en local et ne nécessite aucun VPS.
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Fonctionnalités
 
-### `npm run build`
+- Frontend React local
+- Backend Node.js local
+- Chiffrement AES-256-GCM
+- Messages chiffrés stockés sur Base
+- Catégories chiffrées stockées sur Base
+- Interface d'écriture et de lecture
+- Recherche par titre
+- Filtrage par catégorie
+- Pagination
+- Contenu masqué par défaut
+- Suppression logique des messages
+- Suppression logique des catégories
+- Architecture append-only
+- Reconstruction complète du coffre depuis la blockchain
+- Aucune base de données locale obligatoire
+- Aucun VPS nécessaire
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# Architecture
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```text
+React
+localhost:3000
 
-### `npm run eject`
+        |
+        | HTTP local
+        v
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Backend Node.js
+127.0.0.1:3001
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+        |
+        | lit .env.local
+        |
+        | PRIVATE_KEY
+        | ENCRYPTION_KEY
+        |
+        | AES-256-GCM
+        v
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Payload chiffré
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+        |
+        | ethers.js
+        v
 
-## Learn More
+Base
+        |
+        v
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Smart contract OnChainVault
+        |
+        v
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Events EntryWritten
