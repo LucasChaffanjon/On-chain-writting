@@ -1,0 +1,551 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  width: min(1100px, calc(100% - 32px));
+
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+/* ==================================================
+   Header
+   ================================================== */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 24px;
+
+  padding: 36px 0 22px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.header p {
+  margin: 7px 0 0;
+
+  color: #777;
+}
+
+.wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  padding: 9px 13px;
+
+  border: 1px solid #ddd;
+
+  border-radius: 9px;
+}
+
+.wallet small {
+  margin-top: 4px;
+  color: #777;
+}
+
+/* ==================================================
+   Tabs
+   ================================================== */
+
+.tabs {
+  display: flex;
+  gap: 8px;
+
+  padding-bottom: 18px;
+
+  border-bottom: 1px solid #ddd;
+}
+
+.tabs button,
+.filter button {
+  border: 0;
+
+  padding: 9px 14px;
+
+  border-radius: 8px;
+
+  background: transparent;
+}
+
+.tabs button:hover,
+.filter button:hover {
+  background: #f2f2f2;
+}
+
+.tabs button.active,
+.filter button.active {
+  background: #111;
+
+  color: white;
+}
+
+/* ==================================================
+   Content
+   ================================================== */
+
+.content {
+  padding-top: 26px;
+}
+
+.content h2 {
+  margin-top: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 22px;
+
+  max-width: 700px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+
+  padding: 12px 14px;
+
+  border: 1px solid #ccc;
+
+  border-radius: 8px;
+
+  background: white;
+}
+
+textarea {
+  resize: vertical;
+
+  font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #222;
+
+  outline-offset: 1px;
+}
+
+/* ==================================================
+   Buttons
+   ================================================== */
+
+.primary,
+.secondary,
+.dangerButton {
+  border-radius: 8px;
+
+  padding: 10px 15px;
+}
+
+.primary {
+  border: 0;
+  background: #111;
+  color: white;
+}
+
+.secondary {
+  border: 1px solid #ccc;
+
+  background: white;
+
+  color: #111;
+}
+
+.dangerButton {
+  border: 1px solid #d8a0a0;
+
+  background: #fff5f5;
+
+  color: #a00000;
+}
+
+.dangerButton:hover {
+  background: #ffe9e9;
+}
+
+.primary:disabled,
+.secondary:disabled,
+.dangerButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.smallButton {
+  padding: 6px 9px;
+
+  font-size: 12px;
+}
+
+/* ==================================================
+   Section header
+   ================================================== */
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 20px;
+}
+
+.sectionHeader h2 {
+  margin-bottom: 4px;
+}
+
+.messageCount {
+  margin: 0;
+
+  color: #888;
+
+  font-size: 13px;
+}
+
+/* ==================================================
+   Search / filters
+   ================================================== */
+
+.readToolbar {
+  margin-top: 20px;
+}
+
+.searchInput {
+  max-width: 440px;
+}
+
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin: 14px 0 18px;
+}
+
+/* ==================================================
+   Two-column message grid
+   ================================================== */
+
+.messageGrid {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+.messageCard {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  padding: 13px;
+
+  border: 1px solid #ddd;
+
+  border-radius: 10px;
+
+  background: white;
+}
+
+.messageCardHeader {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 10px;
+}
+
+.messageTitleBlock {
+  min-width: 0;
+}
+
+.messageTitleBlock h3 {
+  margin: 6px 0 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  font-size: 15px;
+}
+
+.categoryBadge {
+  display: inline-block;
+
+  max-width: 180px;
+
+  padding: 3px 7px;
+
+  overflow: hidden;
+
+  border-radius: 6px;
+
+  background: #eee;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  font-size: 11px;
+}
+
+.messageDate {
+  flex-shrink: 0;
+
+  color: #999;
+
+  font-size: 11px;
+}
+
+.hiddenContent {
+  margin-top: 10px;
+
+  min-height: 39px;
+
+  padding: 10px;
+
+  overflow: hidden;
+
+  border-radius: 6px;
+
+  background: #f7f7f7;
+
+  color: #aaa;
+
+  letter-spacing: 2px;
+
+  user-select: none;
+}
+
+.messageContent {
+  margin: 10px 0 0;
+
+  min-height: 39px;
+
+  max-height: 180px;
+
+  padding: 10px;
+
+  overflow: auto;
+
+  border-radius: 6px;
+
+  background: #f7f7f7;
+
+  white-space: pre-wrap;
+
+  word-break: break-word;
+
+  font-family: inherit;
+
+  line-height: 1.4;
+
+  font-size: 13px;
+}
+
+.messageCardFooter {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-top: 10px;
+}
+
+/* ==================================================
+   Pagination
+   ================================================== */
+
+.pagination {
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  gap: 16px;
+
+  margin-top: 22px;
+}
+
+.pagination span {
+  color: #666;
+
+  font-size: 13px;
+}
+
+/* ==================================================
+   Categories
+   ================================================== */
+
+.categoryForm {
+  display: flex;
+
+  gap: 10px;
+
+  max-width: 600px;
+
+  margin-bottom: 30px;
+}
+
+.categoryList {
+  display: flex;
+
+  flex-direction: column;
+
+  max-width: 700px;
+}
+
+.categoryItem {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 20px;
+
+  border-bottom: 1px solid #eee;
+
+  padding: 14px 4px;
+}
+
+.categoryItem > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.categoryItem small {
+  color: #777;
+}
+
+/* ==================================================
+   Generic
+   ================================================== */
+
+.empty {
+  padding: 30px;
+
+  text-align: center;
+
+  border: 1px dashed #ccc;
+
+  border-radius: 10px;
+
+  color: #777;
+}
+
+.error {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 20px;
+
+  padding: 12px 16px;
+
+  margin-bottom: 24px;
+
+  border: 1px solid #c33;
+
+  border-radius: 8px;
+
+  background: #fff5f5;
+
+  color: #900;
+}
+
+.error button {
+  border: 0;
+
+  background: transparent;
+
+  color: #900;
+
+  font-size: 20px;
+}
+
+/* ==================================================
+   Tablet / mobile
+   ================================================== */
+
+@media (max-width: 760px) {
+  .app {
+    width: calc(100% - 20px);
+  }
+
+  .header {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .wallet {
+    align-items: flex-start;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .messageGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHeader {
+    align-items: flex-start;
+  }
+
+  .categoryForm {
+    flex-direction: column;
+  }
+
+  .pagination {
+    justify-content: space-between;
+  }
+}

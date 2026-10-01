@@ -1,102 +1,753 @@
-import React, { useState } from "react";
-import { encrypt } from "eciesjs";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import "./App.css";
+
+const API_URL = "http://127.0.0.1:3001";
+
+const MESSAGES_PER_PAGE = 10;
 
 function App() {
-  const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("");
+  const [activeTab, setActiveTab] = useState("write");
 
-  const RECIPIENT_PUBLIC_KEY = "";
+  const [categories, setCategories] = useState([]);
 
-  const BACKEND_URL = "";
+  const [messages, setMessages] = useState([]);
 
-  const uint8ToBase64 = (uint8Array) => {
-    let binary = "";
-    const bytes = new Uint8Array(uint8Array);
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState("");
+
+  const [wallet, setWallet] = useState(null);
+
+  // ==================================================
+  // Message form
+  // ==================================================
+
+  const [title, setTitle] = useState("");
+
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  const [content, setContent] = useState("");
+
+  const [writingMessage, setWritingMessage] = useState(false);
+
+  // ==================================================
+  // Category form
+  // ==================================================
+
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  const [writingCategory, setWritingCategory] = useState(false);
+
+  // ==================================================
+  // Read filters
+  // ==================================================
+
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [visibleMessages, setVisibleMessages] = useState(new Set());
+
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
+
+  const [deletingCategoryId, setDeletingCategoryId] = useState(null);
+
+  // ==================================================
+  // Wallet
+  // ==================================================
+
+  const loadWallet = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/wallet`);
+
+      const data = await response.json();
+
+      if (data.success) {
+        setWallet(data);
+      }
+    } catch {
+      // Wallet display is optional.
     }
-    return window.btoa(binary);
-  };
+  }, []);
 
-  const handleSend = async () => {
-    if (!message.trim()) {
-      setStatus("Tu n'as rien écrit");
+  // ==================================================
+  // Vault
+  // ==================================================
+
+  const loadVault = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(`${API_URL}/api/vault`);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to load vault");
+      }
+
+      const loadedCategories = data.categories || [];
+
+      const loadedMessages = data.messages || [];
+
+      setCategories(loadedCategories);
+
+      setMessages(loadedMessages);
+
+      setSelectedCategory((current) => {
+        const exists = loadedCategories.some(
+          (category) => category.id === current
+        );
+
+        if (exists) {
+          return current;
+        }
+
+        if (loadedCategories.length > 0) {
+          return loadedCategories[0].id;
+        }
+
+        return "";
+      });
+
+      setCategoryFilter((current) => {
+        if (current === "all") {
+          return "all";
+        }
+
+        const exists = loadedCategories.some(
+          (category) => category.id === current
+        );
+
+        return exists ? current : "all";
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ==================================================
+  // Initial load
+  // ==================================================
+
+  useEffect(() => {
+    loadVault();
+    loadWallet();
+  }, [loadVault, loadWallet]);
+
+  // ==================================================
+  // Category map
+  // ==================================================
+
+  const categoryMap = useMemo(() => {
+    const map = {};
+
+    for (const category of categories) {
+      map[category.id] = category.name;
+    }
+
+    return map;
+  }, [categories]);
+
+  // ==================================================
+  // Filtered messages
+  // ==================================================
+
+  const filteredMessages = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    return [...messages].reverse().filter((message) => {
+      const matchesCategory =
+        categoryFilter === "all" || message.categoryId === categoryFilter;
+
+      const matchesSearch =
+        !normalizedSearch ||
+        String(message.title || "")
+          .toLowerCase()
+          .includes(normalizedSearch);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [messages, categoryFilter, searchQuery]);
+
+  // ==================================================
+  // Pagination
+  // ==================================================
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredMessages.length / MESSAGES_PER_PAGE)
+  );
+
+  const paginatedMessages = useMemo(() => {
+    const start = (currentPage - 1) * MESSAGES_PER_PAGE;
+
+    return filteredMessages.slice(start, start + MESSAGES_PER_PAGE);
+  }, [filteredMessages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryFilter, searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  // ==================================================
+  // Write message
+  // ==================================================
+
+  async function handleWriteMessage(event) {
+    event.preventDefault();
+
+    if (!title.trim() || !selectedCategory || !content) {
+      setError("Tous les champs sont obligatoires.");
+
       return;
     }
 
     try {
-      setStatus("Crypting...");
+      setWritingMessage(true);
+      setError("");
 
-      const data = new TextEncoder().encode(message);
-
-      const encryptedBytes = encrypt(RECIPIENT_PUBLIC_KEY, data);
-      const encryptedBase64 = uint8ToBase64(encryptedBytes);
-
-      setStatus("envoi vers le vps...");
-
-      const response = await fetch(BACKEND_URL, {
+      const response = await fetch(`${API_URL}/api/messages`, {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": "APIKEY",
         },
+
         body: JSON.stringify({
-          encrypted: encryptedBase64,
+          title,
+          categoryId: selectedCategory,
+          content,
         }),
       });
 
-      const result = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "servor error");
+        throw new Error(data.error || "Unable to write message");
       }
 
-      setStatus(`Envoyé ! ID : ${result.txHash}`);
-      setMessage("");
+      setTitle("");
+      setContent("");
+
+      await loadVault();
+
+      setCurrentPage(1);
+
+      setActiveTab("read");
     } catch (err) {
-      console.error(err);
-      setStatus("Aie.. " + err.message);
+      setError(err.message);
+    } finally {
+      setWritingMessage(false);
     }
-  };
+  }
+
+  // ==================================================
+  // Create category
+  // ==================================================
+
+  async function handleCreateCategory(event) {
+    event.preventDefault();
+
+    const name = newCategoryName.trim();
+
+    if (!name) {
+      return;
+    }
+
+    try {
+      setWritingCategory(true);
+
+      setError("");
+
+      const response = await fetch(`${API_URL}/api/categories`, {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to create category");
+      }
+
+      setNewCategoryName("");
+
+      await loadVault();
+
+      setSelectedCategory(data.category.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWritingCategory(false);
+    }
+  }
+
+  // ==================================================
+  // Delete message
+  // ==================================================
+
+  async function handleDeleteMessage(message) {
+    const confirmed = window.confirm(
+      `Supprimer "${message.title}" ?\n\nCette suppression sera enregistrée sur la blockchain et le message sera masqué du coffre.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingMessageId(message.id);
+
+      setError("");
+
+      const response = await fetch(`${API_URL}/api/messages/${message.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible de supprimer le message");
+      }
+
+      setVisibleMessages((current) => {
+        const next = new Set(current);
+
+        next.delete(message.id);
+
+        return next;
+      });
+
+      await loadVault();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingMessageId(null);
+    }
+  }
+
+  // ==================================================
+  // Delete category
+  // ==================================================
+
+  async function handleDeleteCategory(category) {
+    const numberOfMessages = messages.filter(
+      (message) => message.categoryId === category.id
+    ).length;
+
+    if (numberOfMessages > 0) {
+      setError(
+        `La catégorie "${category.name}" contient ${numberOfMessages} message(s). Déplace ou supprime d'abord ces messages.`
+      );
+
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Supprimer la catégorie "${category.name}" ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingCategoryId(category.id);
+
+      setError("");
+
+      const response = await fetch(`${API_URL}/api/categories/${category.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible de supprimer la catégorie");
+      }
+
+      await loadVault();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingCategoryId(null);
+    }
+  }
+
+  // ==================================================
+  // Reveal / hide
+  // ==================================================
+
+  function toggleMessageVisibility(messageId) {
+    setVisibleMessages((current) => {
+      const next = new Set(current);
+
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+
+      return next;
+    });
+  }
+
+  // ==================================================
+  // Copy
+  // ==================================================
+
+  async function copyMessage(messageContent) {
+    try {
+      await navigator.clipboard.writeText(messageContent);
+    } catch {
+      setError("Impossible de copier le contenu.");
+    }
+  }
+
+  // ==================================================
+  // UI
+  // ==================================================
 
   return (
-    <div
-      style={{
-        padding: "40px",
-        maxWidth: "700px",
-        margin: "0 auto",
-        fontFamily: "Arial",
-      }}
-    >
-      <h1>Ecriture on-chain</h1>
+    <div className="app">
+      <header className="header">
+        <div>
+          <h1>On-chain Vault</h1>
 
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type here..."
-        rows={6}
-        style={{ width: "100%", padding: "15px", fontSize: "16px" }}
-      />
+          <p>Coffre personnel chiffré sur Base</p>
+        </div>
 
-      <br />
-      <br />
+        {wallet && (
+          <div className="wallet">
+            <span>
+              {wallet.address.slice(0, 6)}
+              ...
+              {wallet.address.slice(-4)}
+            </span>
 
-      <button
-        onClick={handleSend}
-        style={{
-          padding: "15px 30px",
-          fontSize: "18px",
-          background: "#007bff",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          cursor: "pointer",
-        }}
-      >
-        Send
-      </button>
+            <small>{Number(wallet.balanceEth).toFixed(5)} ETH</small>
+          </div>
+        )}
+      </header>
 
-      <p style={{ marginTop: "20px", fontWeight: "bold" }}>{status}</p>
+      <nav className="tabs">
+        <button
+          className={activeTab === "write" ? "active" : ""}
+          onClick={() => setActiveTab("write")}
+        >
+          Écrire
+        </button>
+
+        <button
+          className={activeTab === "read" ? "active" : ""}
+          onClick={() => setActiveTab("read")}
+        >
+          Lire
+        </button>
+
+        <button
+          className={activeTab === "categories" ? "active" : ""}
+          onClick={() => setActiveTab("categories")}
+        >
+          Catégories
+        </button>
+      </nav>
+
+      <main className="content">
+        {error && (
+          <div className="error">
+            <span>{error}</span>
+
+            <button onClick={() => setError("")}>×</button>
+          </div>
+        )}
+
+        {activeTab === "write" && (
+          <section>
+            <h2>Nouveau message</h2>
+
+            {categories.length === 0 ? (
+              <div className="empty">
+                <p>Crée d'abord une catégorie.</p>
+
+                <button
+                  className="primary"
+                  onClick={() => setActiveTab("categories")}
+                >
+                  Créer une catégorie
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleWriteMessage} className="form">
+                <label>
+                  Titre
+                  <input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="Ex. GitHub"
+                    autoComplete="off"
+                  />
+                </label>
+
+                <label>
+                  Catégorie
+                  <select
+                    value={selectedCategory}
+                    onChange={(event) =>
+                      setSelectedCategory(event.target.value)
+                    }
+                  >
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Contenu
+                  <textarea
+                    value={content}
+                    onChange={(event) => setContent(event.target.value)}
+                    placeholder="Contenu à chiffrer..."
+                    rows={10}
+                  />
+                </label>
+
+                <button className="primary" disabled={writingMessage}>
+                  {writingMessage
+                    ? "Écriture sur Base..."
+                    : "Chiffrer et enregistrer"}
+                </button>
+              </form>
+            )}
+          </section>
+        )}
+
+        {activeTab === "read" && (
+          <section>
+            <div className="sectionHeader">
+              <div>
+                <h2>Messages</h2>
+
+                <p className="messageCount">
+                  {filteredMessages.length} résultat(s)
+                </p>
+              </div>
+
+              <button
+                className="secondary"
+                onClick={loadVault}
+                disabled={loading}
+              >
+                Actualiser
+              </button>
+            </div>
+
+            <div className="readToolbar">
+              <input
+                className="searchInput"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Rechercher par nom..."
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="filter">
+              <button
+                className={categoryFilter === "all" ? "active" : ""}
+                onClick={() => setCategoryFilter("all")}
+              >
+                Tous
+              </button>
+
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  className={categoryFilter === category.id ? "active" : ""}
+                  onClick={() => setCategoryFilter(category.id)}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="empty">Lecture de Base...</div>
+            ) : paginatedMessages.length === 0 ? (
+              <div className="empty">Aucun message.</div>
+            ) : (
+              <>
+                <div className="messageGrid">
+                  {paginatedMessages.map((message) => {
+                    const messageId = message.id || message.entryId;
+
+                    const isVisible = visibleMessages.has(messageId);
+
+                    const isDeleting = deletingMessageId === message.id;
+
+                    return (
+                      <article className="messageCard" key={messageId}>
+                        <div className="messageCardHeader">
+                          <div className="messageTitleBlock">
+                            <span className="categoryBadge">
+                              {message.legacy
+                                ? message.category || "Ancien message"
+                                : categoryMap[message.categoryId] ||
+                                  "Sans catégorie"}
+                            </span>
+
+                            <h3>{message.title}</h3>
+                          </div>
+
+                          <span className="messageDate">
+                            {message.createdAt
+                              ? new Date(message.createdAt).toLocaleDateString()
+                              : ""}
+                          </span>
+                        </div>
+
+                        {isVisible ? (
+                          <pre className="messageContent">
+                            {message.content}
+                          </pre>
+                        ) : (
+                          <div className="hiddenContent">••••••••••••••••</div>
+                        )}
+
+                        <div className="messageCardFooter">
+                          <button
+                            className="secondary smallButton"
+                            onClick={() => toggleMessageVisibility(messageId)}
+                          >
+                            {isVisible ? "Masquer" : "Voir"}
+                          </button>
+
+                          <button
+                            className="secondary smallButton"
+                            onClick={() => copyMessage(message.content)}
+                          >
+                            Copier
+                          </button>
+
+                          <button
+                            className="dangerButton smallButton"
+                            disabled={isDeleting}
+                            onClick={() => handleDeleteMessage(message)}
+                          >
+                            {isDeleting ? "Suppression..." : "Supprimer"}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="pagination">
+                    <button
+                      className="secondary"
+                      disabled={currentPage === 1}
+                      onClick={() =>
+                        setCurrentPage((page) => Math.max(1, page - 1))
+                      }
+                    >
+                      Précédent
+                    </button>
+
+                    <span>
+                      Page {currentPage} / {totalPages}
+                    </span>
+
+                    <button
+                      className="secondary"
+                      disabled={currentPage === totalPages}
+                      onClick={() =>
+                        setCurrentPage((page) => Math.min(totalPages, page + 1))
+                      }
+                    >
+                      Suivant
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
+        {activeTab === "categories" && (
+          <section>
+            <h2>Catégories</h2>
+
+            <form className="categoryForm" onSubmit={handleCreateCategory}>
+              <input
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                placeholder="Nouvelle catégorie"
+                autoComplete="off"
+              />
+
+              <button className="primary" disabled={writingCategory}>
+                {writingCategory ? "Création..." : "Ajouter"}
+              </button>
+            </form>
+
+            <div className="categoryList">
+              {categories.map((category) => {
+                const messageCount = messages.filter(
+                  (message) => message.categoryId === category.id
+                ).length;
+
+                const isDeleting = deletingCategoryId === category.id;
+
+                return (
+                  <div className="categoryItem" key={category.id}>
+                    <div>
+                      <strong>{category.name}</strong>
+
+                      <small>{messageCount} message(s)</small>
+                    </div>
+
+                    <button
+                      className="dangerButton smallButton"
+                      disabled={isDeleting}
+                      onClick={() => handleDeleteCategory(category)}
+                    >
+                      {isDeleting ? "Suppression..." : "Supprimer"}
+                    </button>
+                  </div>
+                );
+              })}
+
+              {categories.length === 0 && (
+                <div className="empty">Aucune catégorie.</div>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
     </div>
   );
 }
