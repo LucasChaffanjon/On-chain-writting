@@ -431,9 +431,9 @@ function App() {
     <div className="app">
       <header className="header">
         <div>
-          <h1>On-chain Vault</h1>
+          <h1>Coffre fort Base</h1>
 
-          <p>Coffre personnel chiffré sur Base</p>
+          <p>Chiffré asymétriquement en local</p>
         </div>
 
         {wallet && (
